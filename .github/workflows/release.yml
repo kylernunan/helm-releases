@@ -7,6 +7,13 @@
 # (e.g. v0.1.1). Or from a terminal:
 #   gh workflow run release.yml -R kylernunan/helm-releases -f ref=v0.1.1
 #
+# `ref` says WHAT to build, `tag` says what to NAME the release. They are the
+# same thing when building from a tag, so `tag` defaults to `ref`. Set it when
+# the source tag does not exist yet and you are building from a branch:
+#   gh workflow run release.yml -R kylernunan/helm-releases -f ref=main -f tag=v0.1.2
+# The updater reads the version from the release tag, so a release named after
+# a branch ("main") is not a publishable one.
+#
 # The in-app updater (electron-updater, provider github) reads
 # kylernunan/helm-releases, so publishing the draft here is what ships an update.
 name: release
@@ -18,6 +25,10 @@ on:
         description: "ew-helm tag or branch to build (e.g. v0.1.1)"
         required: true
         default: main
+      tag:
+        description: "Release tag to publish under. Defaults to ref; set it when building from a branch, e.g. ref=main tag=v0.1.2"
+        required: false
+        default: ""
       channel:
         description: "Build channel"
         type: choice
@@ -36,13 +47,13 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Ensure one draft release for the ref
+      - name: Ensure one draft release for the tag
         run: |
-          gh release view "${{ inputs.ref }}" -R "${{ github.repository }}" >/dev/null 2>&1 || \
-            gh release create "${{ inputs.ref }}" -R "${{ github.repository }}" --draft \
-              --title "${REF#v}" --notes "Ebbwater Helm ${REF#v} (${{ inputs.channel }})"
+          gh release view "$TAG" -R "${{ github.repository }}" >/dev/null 2>&1 || \
+            gh release create "$TAG" -R "${{ github.repository }}" --draft \
+              --title "${TAG#v}" --notes "Ebbwater Helm ${TAG#v} (${{ inputs.channel }}, built from ${{ inputs.ref }})"
         env:
-          REF: ${{ inputs.ref }}
+          TAG: ${{ inputs.tag || inputs.ref }}
 
   build:
     needs: [prepare]
@@ -92,7 +103,7 @@ jobs:
           shopt -s nullglob
           files=(dist/*.exe dist/*.dmg dist/*.zip dist/*.AppImage dist/*.deb dist/*.rpm dist/*.blockmap dist/latest*.yml)
           echo "uploading: ${files[*]}"
-          gh release upload "${{ inputs.ref }}" "${files[@]}" -R "${{ github.repository }}" --clobber
+          gh release upload "${{ inputs.tag || inputs.ref }}" "${files[@]}" -R "${{ github.repository }}" --clobber
         working-directory: packages/desktop
       - uses: actions/upload-artifact@v4
         with:
