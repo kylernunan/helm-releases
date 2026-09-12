@@ -90,15 +90,40 @@ sudo dnf install ./ebbwater-desktop-linux-x86_64.rpm
 
 The package installs a launcher named **Helm Beta**.
 
-### npm (server and web UI only)
+### npm (any platform with Node.js)
+
+The `ebbwater-helm` package runs the Helm server and web UI without the
+desktop shell. It is the same server the desktop app embeds, so it reads the
+same database and provider keys on this machine. Requires
+[Node.js](https://nodejs.org) 22.5 or newer.
+
+Try it without installing anything:
 
 ```bash
 npx ebbwater-helm
 ```
 
-Opens the same Helm at http://127.0.0.1:4096 in your browser, without the
-desktop shell. Needs Node.js 22.5 or newer. `npx ebbwater-helm desktop`
-downloads the desktop installer for your platform instead.
+Then open http://127.0.0.1:4096. Or install it for good:
+
+```bash
+npm install -g ebbwater-helm
+helm serve --open
+```
+
+Useful commands:
+
+```bash
+helm serve --port 4200                       # a different port
+helm serve --password <secret>               # require a sign-in (user: opencode)
+helm serve --password <secret> --tailnet     # publish on your Tailscale tailnet, no port in the address
+helm desktop                                 # download the desktop installer for this platform and open it
+helm --version
+npm update -g ebbwater-helm                  # update
+```
+
+`OPENCODE_SERVER_PASSWORD` in the environment works in place of
+`--password`. Stop the server with Ctrl+C; with `--tailnet` that also
+removes the tailnet mapping it created.
 
 ## First launch
 
