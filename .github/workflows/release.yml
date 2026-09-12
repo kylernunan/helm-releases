@@ -73,6 +73,28 @@ jobs:
       # No signing identity yet: build unsigned instead of failing the mac job.
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Crash reporting. Two independent halves: VITE_SENTRY_DSN makes the
+      # shipped app report at all (src/renderer/index.tsx only calls
+      # Sentry.init when it is set), and the AUTH_TOKEN/ORG/PROJECT trio
+      # makes the build upload sourcemaps so those reports are readable.
+      # An unset secret evaluates to an empty string, which the desktop
+      # prebuild reports as "no crash reporting" rather than failing the
+      # build -- so a release still cuts before these are configured.
+      # Sourcemaps are never packaged either way (electron-builder
+      # `!**/*.map`); Sentry symbolicates from its own uploaded copy.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+      VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+      # One release name for both halves, and it must be THIS variable.
+      # The renderer tags its events with
+      # `VITE_SENTRY_RELEASE ?? "desktop@<pkg.version>"`, while the upload
+      # names the release `SENTRY_RELEASE ?? VITE_SENTRY_RELEASE`. Setting
+      # SENTRY_RELEASE alone would upload maps under "v0.1.7" while events
+      # arrived tagged "desktop@0.1.7", so nothing would ever symbolicate
+      # and the failure would be invisible -- traces just stay minified.
+      # Setting VITE_SENTRY_RELEASE makes both sides read the same string.
+      VITE_SENTRY_RELEASE: ${{ inputs.tag || inputs.ref }}
     steps:
       - name: Check out ew-helm (read-only deploy key)
         uses: actions/checkout@v4
