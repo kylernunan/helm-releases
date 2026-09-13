@@ -84,14 +84,18 @@ jobs:
       # `!**/*.map`); Sentry symbolicates from its own uploaded copy.
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       # A variable, not a secret: an org slug is not confidential, and as a
-      # secret GitHub redacts that string everywhere in the log -- installer
+      # secret GitHub redacted that string everywhere in the log -- installer
       # filenames came out as `dist/***-desktop-linux-x86_64.AppImage` and
       # `themes/***.json`, which is exactly the readability you want back
-      # when a build fails. The `||` keeps this working either way during
-      # the migration; drop the secret half once the variable exists and
-      # the repository secret is deleted (the masking stops at deletion,
-      # not here).
-      SENTRY_ORG: ${{ vars.SENTRY_ORG || secrets.SENTRY_ORG }}
+      # when a build fails. The migration is done: the v0.1.8 build (run 9)
+      # printed `SENTRY_ORG: ebbwater` and `dist/ebbwater-desktop-...`
+      # unmasked, which proves both halves -- the variable resolves, and
+      # the repository secret is gone, since GitHub would still redact the
+      # literal string while it existed. So the `|| secrets.SENTRY_ORG`
+      # fallback is removed; if the variable is ever unset, SENTRY_ORG
+      # resolves empty and the desktop prebuild warns that the build has no
+      # crash reporting rather than failing.
+      SENTRY_ORG: ${{ vars.SENTRY_ORG }}
       SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
       VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
       # One release name for both halves, and it must be THIS variable.
